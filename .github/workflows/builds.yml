@@ -31,8 +31,6 @@ jobs:
           response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest)
 
-          echo "$response"
-
           if echo "$response" | grep -q "Not Found"; then
             echo "has_release=false" >> $GITHUB_OUTPUT
           else
@@ -115,7 +113,7 @@ jobs:
     needs: check-env
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         repository: JiaPai12138/VIP_MK
         token: ${{ secrets.LOK }}
@@ -191,3 +189,59 @@ jobs:
         name: VIP_PLUGIN
         path: VipFrame.7z
         retention-days: 1
+
+  build_pyd:
+    runs-on: windows-latest
+
+    needs: check-env
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: JiaPai12138/Z-LoK-Stable
+          token: ${{ secrets.LOK }}
+          path: Z-LoK-Stable
+          fetch-depth: 1
+          show-progress: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: build
+        working-directory: ${{ github.workspace }}\Z-LoK-Stable
+        shell: cmd
+        run: |
+          copy /Y clang-cl.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+          copy /Y lld-link.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\lld-link.exe"
+
+          pip install nuitka
+          set CCFLAGS=-mllvm -sub -mllvm -split -mllvm -sobf -flto -LTCG /MD
+          set LDFLAGS=/LTCG /OPT:REF /OPT:ICF /DEBUG:NONE
+          python -m nuitka --clang --module --lto=no --quiet --show-progress --show-memory --nofollow-imports --remove-output z_lok.py
+
+          set CCFLAGS=-mllvm -sub -mllvm -split -mllvm -sobf -mllvm -split_num=7 -flto -LTCG /MD
+          python -m nuitka --clang --module --lto=no --quiet --show-progress --show-memory --nofollow-imports --remove-output z_lokor --include-package=z_lokor
+
+          ren z_lok.cp312-win_amd64.pyd z_lok.pyd
+          ren z_lokor.cp312-win_amd64.pyd z_lokor.pyd
+          llvm-strip --strip-all z_lok.pyd
+          llvm-strip --strip-all z_lokor.pyd
+
+      - name: Compress & encrypt build with 7z
+        run: |
+          7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on `
+            loker.7z `
+            ${{ github.workspace }}\Z-LoK-Stable\z_lok.pyd `
+            ${{ github.workspace }}\Z-LoK-Stable\z_lokor.pyd
+
+      - name: Saving all wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: color
+          path: |
+            loker.7z

@@ -1,2 +1,2 @@
-# D-LoK
-D-LoK Releases and builds
+# Z-LoK
+Z-LoK Releases and builds
