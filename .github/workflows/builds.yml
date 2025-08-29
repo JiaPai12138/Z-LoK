@@ -57,7 +57,7 @@ jobs:
             echo "⚠️ No releases found."
           fi
 
-  build_exe:
+  build_starter:
     runs-on: windows-latest
 
     needs: check-env
@@ -105,5 +105,89 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: PyStarter
+        name: VIP_EXE
         path: PyStarter.7z
+        retention-days: 1
+
+  build_mk:
+    runs-on: windows-latest
+
+    needs: check-env
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: JiaPai12138/VIP_MK
+        token: ${{ secrets.LOK }}
+        path: VIP_MK
+        fetch-depth: 1
+        show-progress: true
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build
+      working-directory: ${{ github.workspace }}\VIP_MK
+      shell: cmd
+      run: |
+        copy /Y clang-cl.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+        copy /Y lld-link.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\lld-link.exe"
+
+        msbuild VIP_MK.sln /p:Configuration=Release /p:Platform=x64 /p:CLToolExe=clang-cl.exe /p:CLToolPath=${{ github.workspace }}\VIP_MK /m /verbosity:quiet
+
+    - name: Strip
+      working-directory: ${{ github.workspace }}\VIP_MK
+      run: llvm-strip --strip-all .\x64\Release\MK_Helper.pyd
+
+    - name: Compress & encrypt build with 7z
+      run: |
+        7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on MK_Helper.7z .\VIP_MK\x64\Release\MK_Helper.pyd
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: VIP_MK
+        path: MK_Helper.7z
+        retention-days: 1
+
+  build_plugin:
+    runs-on: windows-latest
+
+    needs: check-env
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        repository: JiaPai12138/VIP_Plugin
+        token: ${{ secrets.LOK }}
+        path: VIP_Plugin
+        fetch-depth: 1
+        show-progress: true
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build
+      working-directory: ${{ github.workspace }}\VIP_Plugin\EVX
+      shell: cmd
+      run: |
+        copy /Y clang-cl.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+        copy /Y lld-link.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\lld-link.exe"
+        xcopy "..\include" "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\lib\clang\19\include" /E /I /H /Y
+
+        msbuild VIP.sln /p:Configuration=Release /p:Platform=x64 /p:CLToolExe=clang-cl.exe /p:CLToolPath=${{ github.workspace }}\VIP_Plugin\EVX /m /verbosity:quiet
+
+    - name: Strip
+      working-directory: ${{ github.workspace }}\VIP_Plugin\EVX
+      run: llvm-strip --strip-all .\x64\Release\VipFrame59_vs.dll
+
+    - name: Compress & encrypt build with 7z
+      run: |
+        7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on VipFrame.7z .\VIP_Plugin\EVX\x64\Release\VipFrame59_vs.dll
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: VIP_PLUGIN
+        path: VipFrame.7z
+        retention-days: 1
