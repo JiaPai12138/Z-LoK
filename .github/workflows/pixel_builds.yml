@@ -1,4 +1,4 @@
-name: Packages Builder
+name: Pixel Builder
 
 on:
   schedule:
@@ -353,24 +353,30 @@ jobs:
         run: |
           runs=$(curl -s -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/builds.yml/runs?per_page=2")
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/pixel_builds.yml/runs?per_page=3")
 
-          prev_id=$(echo "$runs" | jq -r '.workflow_runs[1].id')
-          if [ "$prev_id" = "null" ] || [ -z "$prev_id" ]; then
-            echo "No previous run found"
+          ids=$(echo "$runs" | jq -r --arg self "${{ github.run_id }}" '
+            .workflow_runs // [] | .[]?.id | tostring | select(. != $self)
+          ')
+
+          if [ -z "${ids}" ]; then
+            echo "No other runs to delete."
             exit 0
           fi
 
-          echo "Previous run id: $prev_id"
-          echo "prev_id=$prev_id" >> $GITHUB_OUTPUT
+          while IFS= read -r id; do
+            [ -z "$id" ] && continue
+            echo "Deleting run ${id} ..."
+            code=$(curl -s -o /dev/null -w "%{http_code}" -L -X DELETE \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${id}")
 
-      - name: Delete Previous Run
-        if: steps.prev.outputs.prev_id != '' && steps.prev.outputs.prev_id != 'null'
-        run: |
-          echo "Deleting run ${{ steps.prev.outputs.prev_id }}"
-          curl -L \
-            -X DELETE \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ steps.prev.outputs.prev_id }}
+            if [ "$code" = "204" ]; then
+              echo "Deleted ${id}"
+            else
+              echo "Warning: deleting ${id} returned HTTP ${code}" >&2
+            fi
+
+          done <<< "${ids}"
