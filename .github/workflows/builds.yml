@@ -1,10 +1,13 @@
-name: Builders
+name: Packages Builder
 
 on:
+  schedule:
+    - cron: "*/20 * * * *"
   workflow_dispatch:
 
 permissions:
   actions: write
+  contents: write
 
 jobs:
   check-env:
@@ -260,15 +263,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Backup Files
-        uses: actions/upload-artifact@v4
-        with:
-          name: Backup
-          path: |
-            7z.dll
-            7z.exe
-            cacert.pem
-
       - uses: actions/checkout@v5
         with:
           repository: JiaPai12138/LoK-Dependencies
@@ -322,17 +316,6 @@ jobs:
         run: |
           Rename-Item -Path "Lib" -NewName "z_lok"
 
-      - name: Download Backup
-        uses: actions/download-artifact@v4
-        with:
-          name: Backup
-          path: ${{ github.workspace }}
-
-      - name: Replace PEM
-        shell: cmd
-        run: |
-          copy /Y cacert.pem ".\LoK-Dependencies\z_lok\site-packages\certifi\cacert.pem"
-
       - name: Compress & encrypt dist with 7z
         run: |
           7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g `
@@ -360,16 +343,34 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   clean_run:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     needs: pack_all
 
     steps:
-      - name: Delete Using API
+      - name: Get Previous Run ID
+        id: prev
         run: |
-          curl -L `
-          -X DELETE `
-          -H "Accept: application/vnd.github+json" `
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" `
-          -H "X-GitHub-Api-Version: 2022-11-28" `
-          https://api.github.com/repos/JiaPai12138/Z-LoK/actions/runs/24
+          runs=$(curl -s -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/builds.yml/runs?per_page=2")
+
+          prev_id=$(echo "$runs" | jq -r '.workflow_runs[1].id')
+          if [ "$prev_id" = "null" ] || [ -z "$prev_id" ]; then
+            echo "No previous run found"
+            exit 0
+          fi
+
+          echo "Previous run id: $prev_id"
+          echo "prev_id=$prev_id" >> $GITHUB_OUTPUT
+
+      - name: Delete Previous Run
+        if: steps.prev.outputs.prev_id != '' && steps.prev.outputs.prev_id != 'null'
+        run: |
+          echo "Deleting run ${{ steps.prev.outputs.prev_id }}"
+          curl -L \
+            -X DELETE \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ steps.prev.outputs.prev_id }}
