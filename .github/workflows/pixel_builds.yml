@@ -2,7 +2,7 @@ name: Pixel Builder
 
 on:
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -22,10 +22,7 @@ jobs:
     steps:
       - name: Get CPU core count (Windows)
         id: cpu
-        shell: pwsh
-        run: |
-          $cores = (Get-CimInstance -ClassName Win32_Processor).NumberOfLogicalProcessors
-          Write-Output "cores=$cores" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        run: echo "cores=$env:NUMBER_OF_PROCESSORS" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Get latest release info
         id: release
