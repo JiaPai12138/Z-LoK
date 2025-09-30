@@ -1,0 +1,92 @@
+name: Test + Build renc
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published, edited]
+
+jobs:
+  release_windows_fast:
+    name: Build ${{ matrix.os }} Py${{ matrix.python-version }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python-version: ['3.12', '3.13', '3.13t', '3.14-dev', '3.14t-dev']
+    runs-on: ${{ matrix.os }}
+    env:
+      RUST_BACKTRACE: "full"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: JiaPai12138/rencryptor_LoK
+          token: ${{ secrets.LOK }}
+          path: rencryptor_LoK
+          fetch-depth: 1
+          show-progress: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        working-directory: ${{ github.workspace }}\rencryptor_LoK
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -r requirements.txt
+
+      - name: Setup NASM
+        uses: ilammy/setup-nasm@v1
+
+      - name: Build wheels with maturin
+        working-directory: ${{ github.workspace }}\rencryptor_LoK
+        run: |
+          python replace_path.py
+          rustup self update
+          rustup update nightly
+          rustc --version --verbose
+          rustc --target=x86_64-pc-windows-msvc --print target-cpus
+          cargo update
+          poetry update
+          maturin build --release --strip -i python --target x86_64-pc-windows-msvc --features test
+
+      - name: Install built package
+        working-directory: ${{ github.workspace }}\rencryptor_LoK
+        run: |
+          pip install rencryptor --no-index --find-links target/wheels
+
+      - name: Compress & encrypt dist with 7z
+        run: |
+          7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g `
+            -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+            -p"${{ secrets.DLOK }}" lok.7z `
+            ${{ github.workspace }}\rencryptor_LoK\target\wheels\*.whl
+
+      - name: Upload all wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: rencryptor-${{ matrix.python-version }}
+          path: |
+            lok.7z
+
+      - name: Run tests
+        working-directory: ${{ github.workspace }}\rencryptor_LoK
+        run: |
+          pytest tests/ -s
+
+      - name: Update GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          draft: false
+          prerelease: false
+          files: |
+            lok.7z
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
