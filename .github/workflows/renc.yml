@@ -67,7 +67,7 @@ jobs:
             ${{ github.workspace }}\rencryptor_LoK\target\wheels\*.whl
 
       - name: Upload all wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: rencryptor-${{ matrix.python-version }}
           path: |
