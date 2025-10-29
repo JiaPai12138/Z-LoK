@@ -99,7 +99,9 @@ jobs:
 
     - name: Compress & encrypt build with 7z
       run: |
-        7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on PyStarter.7z .\VIP_exe\x64\Release\*.exe
+        7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+          -p"${{ secrets.DICK }}" PyStarter.7z `
+          .\VIP_exe\x64\Release\*.exe
 
     - name: Upload
       uses: actions/upload-artifact@v5
@@ -140,7 +142,9 @@ jobs:
 
     - name: Compress & encrypt build with 7z
       run: |
-        7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on MK_Helper.7z .\VIP_MK\x64\Release\MK_Helper.pyd
+        7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+          -p"${{ secrets.DICK }}" MK_Helper.7z `
+          .\VIP_MK\x64\Release\MK_Helper.pyd
 
     - name: Upload
       uses: actions/upload-artifact@v5
@@ -185,7 +189,9 @@ jobs:
 
     - name: Compress & encrypt build with 7z
       run: |
-        7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on VipFrame.7z .\VIP_Plugin\EVX\x64\Release\VipFrame59_vs.dll
+        7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+          -p"${{ secrets.DICK }}" VipFrame.7z `
+          .\VIP_Plugin\EVX\x64\Release\VipFrame59_vs.dll
 
     - name: Upload
       uses: actions/upload-artifact@v5
@@ -252,8 +258,7 @@ jobs:
           Copy-Item -Path $_.FullName -Destination "target\wheels"
         }
 
-        7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g `
-          -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+        7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
           -p"${{ secrets.DICK }}" rencryptor.7z `
           target\wheels\rencryptor.cp312-win_amd64.pyd
 
@@ -314,8 +319,8 @@ jobs:
 
       - name: Compress & encrypt build with 7z
         run: |
-          7z a -t7z -mmt -m0=LZMA2 -mx=3 -sccUTF-8 -ms=1g -mqs=on -p"${{ secrets.DICK }}" -mhe=on `
-            loker.7z `
+          7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+            -p"${{ secrets.DICK }}" loker.7z `
             ${{ github.workspace }}\Z-LoK-Stable\z_lok.pyd `
             ${{ github.workspace }}\Z-LoK-Stable\z_lokor.pyd
 
@@ -399,8 +404,7 @@ jobs:
 
       - name: Compress & encrypt dist with 7z
         run: |
-          7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g `
-            -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+          7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
             -p"${{ secrets.DLOK }}" z_lok.7z `
             ${{ github.workspace }}\LoK-Dependencies\z_lok
 
