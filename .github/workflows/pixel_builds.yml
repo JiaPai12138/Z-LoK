@@ -78,6 +78,7 @@ jobs:
       run: |
         copy /Y clang-cl.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
         copy /Y lld-link.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\lld-link.exe"
+        xcopy ".\include" "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\lib\clang\19\include" /E /I /H /Y
 
         msbuild PyStarter.sln /p:Configuration=Release /p:Platform=x64 /p:CLToolExe=clang-cl.exe /p:CLToolPath=${{ github.workspace }}\VIP_exe /m /verbosity:quiet
 
@@ -171,7 +172,10 @@ jobs:
       run: |
         copy /Y clang-cl.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
         copy /Y lld-link.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\lld-link.exe"
+        copy /Y clang-cl.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\bin\clang-cl.exe"
+        copy /Y lld-link.exe "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\bin\lld-link.exe"
         xcopy "..\include" "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\lib\clang\19\include" /E /I /H /Y
+        xcopy "..\include" "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\lib\clang\19\include" /E /I /H /Y
 
         msbuild VIP.sln /p:Configuration=Release /p:Platform=x64 /p:CLToolExe=clang-cl.exe /p:CLToolPath=${{ github.workspace }}\VIP_Plugin\EVX /m /verbosity:quiet
 
@@ -188,6 +192,76 @@ jobs:
       with:
         name: VIP_PLUGIN
         path: VipFrame.7z
+        retention-days: 1
+
+  build_enc:
+    runs-on: windows-latest
+
+    needs: check-env
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+        python-version: ['3.12']
+
+    env:
+      RUST_BACKTRACE: "full"
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        repository: JiaPai12138/rencryptor_LoK
+        token: ${{ secrets.LOK }}
+        path: rencryptor_LoK
+        fetch-depth: 1
+        show-progress: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      working-directory: ${{ github.workspace }}\rencryptor_LoK
+      run: |
+        python -m pip install --upgrade pip wheel
+        pip install -r requirements.txt
+
+    - name: Setup NASM
+      uses: ilammy/setup-nasm@v1
+
+    - name: Build wheels with maturin
+      working-directory: ${{ github.workspace }}\rencryptor_LoK
+      run: |
+        python replace_path.py
+        rustup self update
+        rustup update nightly
+        rustc --version --verbose
+        rustc --target=x86_64-pc-windows-msvc --print target-cpus
+        cargo update
+        poetry update
+        maturin build --release --strip -i python --target x86_64-pc-windows-msvc
+
+    - name: Compress & encrypt dist with 7z
+      working-directory: ${{ github.workspace }}\rencryptor_LoK
+      run: |
+        $whlFile = Get-ChildItem -Path "target\wheels" -Filter "*.whl" | Select-Object -First 1
+        & "7z" x $whlFile.FullName -o"target\wheels" -y
+
+        Get-ChildItem -Path "target\wheels" -Recurse -Filter "*.pyd" | ForEach-Object {
+          Copy-Item -Path $_.FullName -Destination "target\wheels"
+        }
+
+        7z a -t7z -m0=LZMA2 -mmt=on -mx=3 -md=4m -mfb=32 -ms=1g `
+          -mqs=on -sccUTF-8 -mtc=on -mta=on -mhe=on `
+          -p"${{ secrets.DICK }}" rencryptor.7z `
+          target\wheels\rencryptor.cp312-win_amd64.pyd
+
+    - name: Upload
+      uses: actions/upload-artifact@v5
+      with:
+        name: VIP_ENC
+        path: rencryptor.7z
         retention-days: 1
 
   build_pyd:
@@ -291,6 +365,12 @@ jobs:
           name: VIP_COLOR
           path: ${{ github.workspace }}\LoK-Dependencies\Include
 
+      - name: Download artifact 4
+        uses: actions/download-artifact@v6
+        with:
+          name: VIP_ENC
+          path: ${{ github.workspace }}\LoK-Dependencies\Include
+
       - name: Pack Color
         working-directory: ${{ github.workspace }}\LoK-Dependencies
         run: |
@@ -307,6 +387,10 @@ jobs:
       - name: Unzip the .7z file 3
         run: |
           7z x ${{ github.workspace }}\LoK-Dependencies\Include\loker.7z -p"${{ secrets.DICK }}" -o${{ github.workspace }}\LoK-Dependencies\Lib\site-packages
+
+      - name: Unzip the .7z file 4
+        run: |
+          7z x ${{ github.workspace }}\LoK-Dependencies\Include\rencryptor.7z -p"${{ secrets.DICK }}" -o${{ github.workspace }}\LoK-Dependencies\Lib\site-packages
 
       - name: Rename folder
         working-directory: ${{ github.workspace }}\LoK-Dependencies\
