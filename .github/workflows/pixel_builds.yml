@@ -261,7 +261,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: VIP_ENC
-        path: rencryptor.7z
+        path: ${{ github.workspace }}\rencryptor_LoK\rencryptor.7z
         retention-days: 1
 
   build_pyd:
