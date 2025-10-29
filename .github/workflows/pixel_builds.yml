@@ -434,7 +434,7 @@ jobs:
         run: |
           runs=$(curl -s -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/pixel_builds.yml/runs?per_page=3")
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/pixel_builds.yml/runs?per_page=5")
 
           ids=$(echo "$runs" | jq -r --arg self "${{ github.run_id }}" '
             .workflow_runs // [] | .[]?.id | tostring | select(. != $self)
