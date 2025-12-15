@@ -104,7 +104,7 @@ jobs:
           .\VIP_exe\x64\Release\*.exe
 
     - name: Upload
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: VIP_EXE
         path: PyStarter.7z
@@ -147,7 +147,7 @@ jobs:
           .\VIP_MK\x64\Release\MK_Helper.pyd
 
     - name: Upload
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: VIP_MK
         path: MK_Helper.7z
@@ -194,7 +194,7 @@ jobs:
           .\VIP_Plugin\EVX\x64\Release\VipFrame59_vs.dll
 
     - name: Upload
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: VIP_PLUGIN
         path: VipFrame.7z
@@ -263,7 +263,7 @@ jobs:
           target\wheels\rencryptor.cp312-win_amd64.pyd
 
     - name: Upload
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: VIP_ENC
         path: ${{ github.workspace }}\rencryptor_LoK\rencryptor.7z
@@ -325,7 +325,7 @@ jobs:
             ${{ github.workspace }}\Z-LoK-Stable\z_lokor.pyd
 
       - name: Upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: VIP_COLOR
           path: |
@@ -409,7 +409,7 @@ jobs:
             ${{ github.workspace }}\LoK-Dependencies\z_lok
 
       - name: Upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Z_LOK
           path: |
