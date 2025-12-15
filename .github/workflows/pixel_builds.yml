@@ -353,25 +353,25 @@ jobs:
           python-version: '3.12'
 
       - name: Download artifact 1
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: VIP_EXE
           path: ${{ github.workspace }}\LoK-Dependencies\Include
 
       - name: Download artifact 2
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: VIP_MK
           path: ${{ github.workspace }}\LoK-Dependencies\Include
 
       - name: Download artifact 3
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: VIP_COLOR
           path: ${{ github.workspace }}\LoK-Dependencies\Include
 
       - name: Download artifact 4
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: VIP_ENC
           path: ${{ github.workspace }}\LoK-Dependencies\Include
