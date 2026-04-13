@@ -416,7 +416,7 @@ jobs:
             z_lok.7z
 
       - name: Release Packed
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: ${{ needs.build_pyd.outputs.has_release }} == "true"
         with:
           tag_name: ${{ needs.build_pyd.outputs.tag_name }}
